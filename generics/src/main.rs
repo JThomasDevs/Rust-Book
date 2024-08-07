@@ -271,5 +271,139 @@ fn main() {
      * need lots of generic types in your code, it could indicate that your
      * code needs restructuring into smaller pieces. */
 
-    // TODO: Continue @ Section 10.1 - In Enum Definitions
+    /* In Enum Definitions */
+    /* As we did with structs, we can define enums to hold generic data
+     * types in their variants. Let's take another look at the 'Option<T>'
+     * enum that the standard library provides. */
+    #[allow(dead_code)]
+    enum Option<T> {
+        Some(T),
+        None,
+    }
+    /* This definition should now make more sense. As you can see, the
+     * 'Option<T>' enum is generic over type 'T' and has two variants:
+     * 'Some', which holds one value of type 'T', and a 'None' variant that
+     * doesn't hold any value. By using the 'Option<T>' enum, we can
+     * express the abstract concept of an optional value, and because
+     * 'Option<T>' is generic, we can use this abstraction no matter what
+     * the type of the optional value is.
+     *
+     * Enums can use multiple generic types as well. The definition of the
+     * 'Result' enum that we used before is one such enum. */
+    #[allow(dead_code)]
+    enum Result<T, E> {
+        Ok(T),
+        Err(E),
+    }
+    /* The 'Result' enum is generic over two types, 'T' and 'E', and has
+     * two variants: 'Ok', which holds a value of type 'T', and 'Err',
+     * which holds a value of type 'E'. This definition makes it convenient
+     * to use the 'Result' enum anywhere we have an operation that might
+     * succeed (return a value of some type 'T') or fail (return an error
+     * of some type 'E'). In fact, this is what we used to open a file,
+     * where 'T' was filled in with the type 'std::fs::File' when the file
+     * was opened successfully and 'E' was filled in with the type
+     * 'std::io::Error' when there were problems opening the file.
+     *
+     * When you recognize situations in your code with multiple struct or
+     * enum definitions that differ only in the types of the values they
+     * hold, you can avoid duplication by using generic types instead. */
+
+    /* In Method Definitions */
+    /* We can implement methods on structs and enums and use generic types
+     * in their definitions, too. The below example shows the 'Point<T>'
+     * struct we defined above with a method named 'x' implemented on
+     * it. */
+    {
+        #[allow(dead_code)]
+        struct Point<T> {
+            x: T,
+            y: T,
+        }
+
+        impl<T> Point<T> {
+            fn x(&self) -> &T {
+                &self.x
+            }
+        }
+
+        let p = Point { x: 5, y: 10 };
+
+        println!("p.x = {}", p.x());
+    }
+    /* Here, we've defined a method named 'x' on 'Point<T>' that returns a
+     * reference to the data in the field 'x'.
+     *
+     * Note that we have to declare 'T' just after 'impl' so we can use 'T'
+     * to specify that we're implementing methods on the type 'Point<T>'.
+     * By declaring 'T' as a generic type after 'impl', Rust can identify
+     * that the type in the angle brackets in 'Point' is a generic type
+     * rather than the generic parameter declared in the struct definition,
+     * but using the same name is conventional. Methods written with an
+     * 'impl' that declares the generic type will be defined on any
+     * instance of the type, no matter what concrete type ends up
+     * substituting for the generic type.
+     *
+     * We can also specify constraints on generic types when defining
+     * methods on the type. We could, for example, implement methods only
+     * on 'Point<f32>' instances rather than on 'Point<T>' instances with
+     * any generic type. In the below example, we use the concrete type
+     * 'f32', meaning we don't declare any types after 'impl'. */
+    impl Point<f32> {
+        fn distance_from_origin(&self) -> f32 {
+            (self.x.powi(2) + self.y.powi(2)).sqrt()
+        }
+    }
+
+    let p = Point { x: 5.4, y: 10.7 };
+    println!("Distance from center: {}", p.distance_from_origin());
+    /* This code means the type 'Point<f32>' will have a
+     * 'distance_from_origin' method; other instances of 'Point<T>' where
+     * 'T' is not of type 'f32' will not have this method defined. The
+     * method measures how far our point is from the point at coordinates
+     * (0.0, 0.0) and uses mathematical operations that are available only
+     * for floating point types.
+     *
+     * Generic type parameters in a struct definition aren't always the
+     * same as those you use in that same struct's method signature. The
+     * below example uses generic types 'X1' and 'Y1' for the 'Point'
+     * struct and 'X2' 'Y2' for the 'mixup' method signature to make the
+     * example clearer. The method creates a new 'Point' instance with the
+     * 'x' value from the 'self' 'Point' (of type 'X1') and the 'y' value
+     * from the passed-in 'Point' (of type 'Y2'). */
+    {
+        struct Point<X1, Y1> {
+            x: X1,
+            y: Y1,
+        }
+
+        impl<X1, Y1> Point<X1, Y1> {
+            fn mixup<X2, Y2>(self, other: Point<X2, Y2>) -> Point<X1, Y2> {
+                Point {
+                    x: self.x,
+                    y: other.y,
+                }
+            }
+        }
+
+        let p1 = Point { x: 5, y: 10.4 };
+        let p2 = Point { x: "Hello", y: 'c' };
+
+        let p3 = p1.mixup(p2);
+        println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+    }
+    /* Above, we've defined a 'Point' that has an 'i32' for 'x' (with a
+     * value of '5') and an 'f64' for 'y' (with value '10.4'). The 'p2'
+     * variable is a 'Point' struct that has a string slice for 'x' (with
+     * value "Hello") and a 'char' for 'y' (with value 'c'). Calling
+     * 'mixup' on 'p1'. The 'p3' variable will have a 'char' for 'y',
+     * because 'y' came from 'p2'.
+     *
+     * The purpose of the above example is to demonstrate a situation in
+     * which some generic parameters are declared with 'impl' and some are
+     * declared with the method definition. Here, the generic parameters
+     * 'X1' and 'Y1' are declared after 'impl' because they go with the
+     * struct definition. The generic parameters 'X2' and 'Y2' are
+     * declared after 'fn mixup', because they're only relevant to the
+     * method. */
 }
