@@ -20,7 +20,6 @@ struct User {
     email: String,
     sign_in_count: u64,
 }
-// TODO: Continue @ Ownership of Struct Data - Section 5.1
 /* Ownership of Struct Data
  *
  * In the User struct defined above, we used the owned 'String' type
